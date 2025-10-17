@@ -85,7 +85,14 @@ class StockMarketTrendsAnalyzer:
             if end_date is None:
                 end_date = datetime.now().strftime('%Y-%m-%d')
             
-            stock = yf.Ticker(self.ticker)
+            # Create ticker with custom headers to avoid browser impersonation issues
+            import requests
+            session = requests.Session()
+            session.headers.update({
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            })
+            
+            stock = yf.Ticker(self.ticker, session=session)
             self.data = stock.history(start=start_date, end=end_date)
             
             if self.data.empty:
@@ -99,6 +106,16 @@ class StockMarketTrendsAnalyzer:
             
         except Exception as e:
             print(f"Error fetching data: {e}")
+            # Try alternative approach
+            try:
+                stock = yf.Ticker(self.ticker)
+                self.data = stock.history(period="2y")  # Use period instead of dates
+                if not self.data.empty:
+                    self.data = self.data.dropna()
+                    print(f"Fetched {len(self.data)} days of data for {self.ticker} (fallback method)")
+                    return True
+            except Exception as e2:
+                print(f"Fallback also failed: {e2}")
             return False
     
     def create_features(self, lags: int = 20, technical_indicators: bool = True) -> pd.DataFrame:

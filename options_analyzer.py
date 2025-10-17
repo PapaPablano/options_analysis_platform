@@ -29,6 +29,7 @@ class OptionsAnalyzer:
     def fetch_stock_info(self):
         """Fetch basic stock information"""
         try:
+            # Try to get info first
             info = self.stock.info
             self.current_price = info.get('currentPrice', info.get('regularMarketPrice', 0))
             
@@ -41,6 +42,14 @@ class OptionsAnalyzer:
             return self.current_price > 0
         except Exception as e:
             print(f"Error fetching stock info: {e}")
+            # Try alternative approach with period
+            try:
+                hist = self.stock.history(period='5d')
+                if not hist.empty:
+                    self.current_price = hist['Close'].iloc[-1]
+                    return self.current_price > 0
+            except Exception as e2:
+                print(f"Fallback also failed: {e2}")
             return False
     
     def get_expiration_dates(self):
